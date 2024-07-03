@@ -61,6 +61,10 @@ def set_webhook():
         return "webhook setup ok"
     else:
         return "webhook setup failed"
+    
+@app.route('/ping')
+def ping():
+    return 'pong'
 
 @app.route('/')
 def index():
