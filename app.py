@@ -1,4 +1,5 @@
 import re
+import asyncio
 from flask import Flask, request
 import requests
 import telegram
@@ -12,7 +13,8 @@ bot = telegram.Bot(token=TOKEN)
 
 app = Flask(__name__)
 
-@app.route('/{}'.format(TOKEN), methods=['POST'])
+# @app.route('/{}'.format(TOKEN), methods=['POST'])
+@app.route('/', methods=['POST'])
 def respond():
     # retrieve the message in JSON and then transform it to Telegram object
     update = telegram.Update.de_json(request.get_json(force=True), bot)
@@ -31,26 +33,32 @@ def respond():
         Welcome to Initia status bot. Please enter your validator address to check the stats.
         """
         # send the welcoming message
-        bot.sendMessage(chat_id=chat_id, text=bot_welcome, reply_to_message_id=msg_id)
+        asyncio.run(bot.sendMessage(chat_id=chat_id, text=bot_welcome, reply_to_message_id=msg_id))
 
 
     else:
         try:
             # clear the message we got from any non alphabets
             text = re.sub(r"\W", "_", text)
-            # create the api link for the avatar based on http://avatars.adorable.io/
+            
+            # bot.sendChatAction(chat_id=chat_id, action = telegram.ChatAction.TYPING)
+
             url = "https://celatone-api-prod.alleslabs.dev/v1/initia/initiation-1/validators/" + text + "/info"
             response = requests.get(url)
             response_data = response.json()
-            if response_data["info"] == n:
+            if len(response_data["info"]) == 0:
                 raise Exception("Something went wrong")
             
+            uptime_response = requests.get("https://celatone-api-prod.alleslabs.dev/v1/initia/initiation-1/validators/initvaloper19j6aw3lqs0qh97f9tlvhvgeufcr83a3wh0sxtn/uptime?blocks=100").json()
+
+            outputString = 'Account Address: {} \n Moniker: {} \n Is Active: {} \n Is Jailed: {} \n Rank: {} \n Website: {} \n Uptime: {}% \n Signed Blocks: {} \n Missed Blocks: {} \n Proposed Blocks: {} \n Details: {} \n'.format(response_data["info"]["account_address"], response_data["info"]["moniker"], response_data["info"]["is_active"], response_data["info"]["is_jailed"], response_data["info"]["rank"], response_data["info"]["website"], 100 - uptime_response["uptime"]["missed_blocks"], uptime_response["uptime"]["signed_blocks"], uptime_response["uptime"]["missed_blocks"], uptime_response["uptime"]["proposed_blocks"], response_data["info"]["details"])
+
             # reply with a photo to the name the user sent,
             # note that you can send photos by url and telegram will fetch it for you
-            bot.sendPhoto(chat_id=chat_id, text=response_data, reply_to_message_id=msg_id)
+            asyncio.run(bot.sendMessage(chat_id=chat_id, text=str(outputString), reply_to_message_id=msg_id))
         except Exception:
             # if things went wrong
-            bot.sendMessage(chat_id=chat_id, text="Couldn't find validator details. Kindly check validator address", reply_to_message_id=msg_id)
+            asyncio.run(bot.sendMessage(chat_id=chat_id, text="Couldn't find validator details. Kindly check validator address", reply_to_message_id=msg_id))
 
     return 'ok'
 
@@ -66,10 +74,5 @@ def set_webhook():
 def ping():
     return 'pong'
 
-@app.route('/')
-def index():
-    return '.'
-
-
 if __name__ == '__main__':
-    app.run(threaded=True)
+    app.run(threaded=True, port=5000)

@@ -1,4 +1,4 @@
-#!/Users/phoenix/Documents/initiaStatusBot/botenv/bin/python3
+#!/Users/phoenix/Downloads/initiaStatusBot/botenv/bin/python3.12
 # -*- coding: utf-8 -*-
 import re
 import sys

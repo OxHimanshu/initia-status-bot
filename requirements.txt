@@ -1,10 +1,12 @@
 anyio==4.4.0
+asyncio==3.4.3
 blinker==1.8.2
 certifi==2024.6.2
 charset-normalizer==3.3.2
 click==8.1.7
 exceptiongroup==1.2.1
 Flask==3.0.3
+Flask-Cors==4.0.1
 gunicorn @ git+https://github.com/benoitc/gunicorn.git@9802e21f779d9f1f208a1a3288218bd5b843ad46
 h11==0.14.0
 httpcore==1.0.5
