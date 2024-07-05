@@ -1,5 +1,6 @@
 import re
 import asyncio
+import nest_asyncio
 from flask import Flask, request
 import requests
 import telegram
@@ -15,9 +16,12 @@ bot = telegram.Bot(token=TOKEN, request=trequest)
 
 app = Flask(__name__)
 
+nest_asyncio.apply()
+
 # @app.route('/{}'.format(TOKEN), methods=['POST'])
 @app.route('/', methods=['POST'])
 def respond():
+    asyncio.new_event_loop()
     # retrieve the message in JSON and then transform it to Telegram object
     update = telegram.Update.de_json(request.get_json(force=True), bot)
 
@@ -43,24 +47,28 @@ def respond():
             # clear the message we got from any non alphabets
             text = re.sub(r"\W", "_", text)
             
-            # bot.sendChatAction(chat_id=chat_id, action = telegram.ChatAction.TYPING)
-
             url = "https://celatone-api-prod.alleslabs.dev/v1/initia/initiation-1/validators/" + text + "/info"
             response = requests.get(url)
             response_data = response.json()
-            if len(response_data["info"]) == 0:
+            
+            if response_data["info"] is None:
                 raise Exception("Something went wrong")
             
-            uptime_response = requests.get("https://celatone-api-prod.alleslabs.dev/v1/initia/initiation-1/validators/initvaloper19j6aw3lqs0qh97f9tlvhvgeufcr83a3wh0sxtn/uptime?blocks=100").json()
+            uptime_url = "https://celatone-api-prod.alleslabs.dev/v1/initia/initiation-1/validators/" + text + "/uptime?blocks=100"
+            uptime_response = requests.get(uptime_url).json()
 
             outputString = 'Account Address: {} \n Moniker: {} \n Is Active: {} \n Is Jailed: {} \n Rank: {} \n Website: {} \n Uptime: {}% \n Signed Blocks: {} \n Missed Blocks: {} \n Proposed Blocks: {} \n Details: {} \n'.format(response_data["info"]["account_address"], response_data["info"]["moniker"], response_data["info"]["is_active"], response_data["info"]["is_jailed"], response_data["info"]["rank"], response_data["info"]["website"], 100 - uptime_response["uptime"]["missed_blocks"], uptime_response["uptime"]["signed_blocks"], uptime_response["uptime"]["missed_blocks"], uptime_response["uptime"]["proposed_blocks"], response_data["info"]["details"])
 
             # reply with a photo to the name the user sent,
             # note that you can send photos by url and telegram will fetch it for you
             asyncio.run(bot.sendMessage(chat_id=chat_id, text=str(outputString), reply_to_message_id=msg_id))
-        except Exception:
+        except Exception as e:
+            print(e)
+            if response_data["info"] is not None:
+                asyncio.run(bot.sendMessage(chat_id=chat_id, text=str(outputString), reply_to_message_id=msg_id))
+            else:
             # if things went wrong
-            asyncio.run(bot.sendMessage(chat_id=chat_id, text="Couldn't find validator details. Kindly check validator address", reply_to_message_id=msg_id))
+                asyncio.run(bot.sendMessage(chat_id=chat_id, text="Couldn't find validator details. Kindly check validator address", reply_to_message_id=msg_id))
 
     return 'ok'
 
