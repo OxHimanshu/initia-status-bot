@@ -3,13 +3,15 @@ import asyncio
 from flask import Flask, request
 import requests
 import telegram
+from telegram.request import HTTPXRequest
 from telebot.credentials import bot_token, bot_user_name,URL
 
 
 global bot
 global TOKEN
 TOKEN = bot_token
-bot = telegram.Bot(token=TOKEN)
+trequest = HTTPXRequest(connection_pool_size=20)
+bot = telegram.Bot(token=TOKEN, request=trequest)
 
 app = Flask(__name__)
 
